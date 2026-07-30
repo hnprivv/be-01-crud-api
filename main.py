@@ -16,11 +16,12 @@ def validation_exception_handler(request, exc):
         status_code=400,
         content={"detail": exc.errors()})
 
-db = [
+INITIAL_TASKS = [
     {"id": 1, "title": "Task #1", "done": False},
     {"id": 2, "title": "Task #2", "done": False},
     {"id": 3, "title": "Task #3", "done": True},
 ]
+db = [task.copy() for task in INITIAL_TASKS]
 
 # Stage 1 - H (Health Check)
 @app.get("/")
@@ -46,7 +47,7 @@ def get_task_stats():
 @app.post("/tasks/reset", status_code=204)
 def reset_tasks():
     global db
-    db = []
+    db = [task.copy() for task in INITIAL_TASKS]
 
 # Stage 2 - R (Read)
 @app.get("/tasks/{id}")
