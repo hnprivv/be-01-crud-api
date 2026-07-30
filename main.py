@@ -43,6 +43,11 @@ def get_task_stats():
         "open": pending_tasks
     }
 
+@app.post("/tasks/reset", status_code=204)
+def reset_tasks():
+    global db
+    db = []
+
 # Stage 2 - R (Read)
 @app.get("/tasks/{id}")
 def get_task(id: int):
