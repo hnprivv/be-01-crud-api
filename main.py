@@ -22,7 +22,7 @@ db = [
     {"id": 3, "title": "Task #3", "done": True},
 ]
 
-# Stage 1
+# Stage 1 - H (Health Check)
 @app.get("/")
 def root():
     return {"name": "Task API", "version": "1.0", "endpoints": ["/tasks"]}
@@ -31,7 +31,7 @@ def root():
 def health():
     return {"status": "ok"}
 
-# Stage 2
+# Stage 2 - R (Read)
 @app.get("/tasks")
 def get_tasks():
     return {"tasks": db}
@@ -43,7 +43,7 @@ def get_task(id: int):
             return {"task": task}
     raise HTTPException(status_code=404, detail=f"Task {id} not found")
 
-# Stage 3
+# Stage 3 - C (Create)
 @app.post("/tasks", status_code=201)
 def create_task(task: Task):
     new_id = max((task["id"] for task in db), default=0) + 1
@@ -51,7 +51,7 @@ def create_task(task: Task):
     db.append(new_task)
     return {"task": new_task}
 
-# Stage 4
+# Stage 4 - U/D (Update/Delete)
 @app.put("/tasks/{id}")
 def update_task(id: int, task: Task):
     for existing_task in db:
