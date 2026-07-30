@@ -31,6 +31,18 @@ def root():
 def health():
     return {"status": "ok"}
 
+# Optionals
+@app.get("/tasks/stats")
+def get_task_stats():
+    total_tasks = len(db)
+    completed_tasks = sum(1 for task in db if task["done"])
+    pending_tasks = total_tasks - completed_tasks
+    return {
+        "total": total_tasks,
+        "done": completed_tasks,
+        "open": pending_tasks
+    }
+
 # Stage 2 - R (Read)
 @app.get("/tasks/{id}")
 def get_task(id: int):
@@ -40,11 +52,15 @@ def get_task(id: int):
     raise HTTPException(status_code=404, detail=f"Task {id} not found")
 
 @app.get("/tasks")
-def get_tasks(done: bool = None):
+def get_tasks(done: bool = None, q: str = None):
+    filtered_tasks = db
     if done is not None:
-        filtered_tasks = [task for task in db if task["done"] == done]
-        return {"tasks": filtered_tasks}
-    return {"tasks": db}
+        filtered_tasks = [task for task in filtered_tasks if task["done"] == done]
+    if q is not None:
+        filtered_tasks = [task for task in filtered_tasks if q.lower() in task["title"].lower()]
+    if not filtered_tasks:
+        raise HTTPException(status_code=404, detail="No tasks found")
+    return {"tasks": filtered_tasks}
 
 # Stage 3 - C (Create)
 @app.post("/tasks", status_code=201)
