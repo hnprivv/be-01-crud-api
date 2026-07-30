@@ -58,7 +58,7 @@ def get_task(id: int):
     raise HTTPException(status_code=404, detail=f"Task {id} not found")
 
 @app.get("/tasks")
-def get_tasks(done: bool = None, q: str = None):
+def get_tasks(done: bool = None, q: str = None, limit: int = 2, offset: int = 2):
     filtered_tasks = db
     if done is not None:
         filtered_tasks = [task for task in filtered_tasks if task["done"] == done]
@@ -66,7 +66,11 @@ def get_tasks(done: bool = None, q: str = None):
         filtered_tasks = [task for task in filtered_tasks if q.lower() in task["title"].lower()]
     if not filtered_tasks:
         raise HTTPException(status_code=404, detail="No tasks found")
-    return {"tasks": filtered_tasks}
+
+    total_tasks = len(filtered_tasks)
+    paginated_tasks = filtered_tasks[offset:offset + limit]
+
+    return {"tasks": paginated_tasks, "total": total_tasks, "limit": limit, "offset": offset}
 
 # Stage 3 - C (Create)
 @app.post("/tasks", status_code=201)
