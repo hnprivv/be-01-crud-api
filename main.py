@@ -3,12 +3,42 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from pydantic import BaseModel
+import sqlite3
+
+# Stage 0 - Fetching the database
+def get_db():
+    conn = sqlite3.connect("tasks.db")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            done BOOLEAN NOT NULL DEFAULT 0
+        )
+    """)
+    conn.commit()
+
+    count = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
+    if count == 0:
+        conn.executemany("INSERT INTO tasks (title, done) VALUES (?, ?)", [
+            ("Task #1", False),
+            ("Task #2", False),
+            ("Task #3", True)
+        ])
+        conn.commit()
+    conn.close()
 
 class Task(BaseModel):
     title: str
     done: bool = False
 
 app = FastAPI()
+
+init_db()
 
 @app.exception_handler(RequestValidationError)
 def validation_exception_handler(request, exc):
