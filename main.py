@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -82,20 +82,28 @@ def reset_tasks():
 # Stage 2 - R (Read)
 @app.get("/tasks/{id}")
 def get_task(id: int):
-    for task in db:
-        if task["id"] == id:
-            return {"task": task}
-    raise HTTPException(status_code=404, detail=f"Task {id} not found")
+    conn = get_db()
+    row = conn.execute("SELECT * FROM tasks WHERE id = ?", (id,)).fetchone()
+    conn.close()
+
+    if row is None:
+        return JSONResponse(status_code=404, content={"error": "Task not found"})    
+    return {"task": dict(row)}
 
 @app.get("/tasks")
 def get_tasks(done: bool = None, q: str = None, limit: int = 2, offset: int = 2):
-    filtered_tasks = db
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM tasks").fetchall()
+    conn.close()
+
+    filtered_tasks = [dict(row) for row in rows]
+
     if done is not None:
         filtered_tasks = [task for task in filtered_tasks if task["done"] == done]
     if q is not None:
         filtered_tasks = [task for task in filtered_tasks if q.lower() in task["title"].lower()]
     if not filtered_tasks:
-        raise HTTPException(status_code=404, detail="No tasks found")
+        return JSONResponse(status_code=404, content={"error": "No tasks found"})
 
     total_tasks = len(filtered_tasks)
     paginated_tasks = filtered_tasks[offset:offset + limit]
@@ -118,7 +126,7 @@ def update_task(id: int, task: Task):
             existing_task["title"] = task.title
             existing_task["done"] = task.done
             return {"task": existing_task}
-    raise HTTPException(status_code=404, detail=f"Task {id} not found")
+    return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
 
 @app.delete("/tasks/{id}", status_code=204)
 def delete_task(id: int):
@@ -126,4 +134,4 @@ def delete_task(id: int):
         if task["id"] == id:
             del db[i]
             return
-    raise HTTPException(status_code=404, detail=f"Task {id} not found")
+    return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
