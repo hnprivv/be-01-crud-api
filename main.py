@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import sqlite3
 
 # Stage 0 - Fetching the database
@@ -33,7 +33,7 @@ def init_db():
     conn.close()
 
 class Task(BaseModel):
-    title: str
+    title: str = Field(min_length=1)
     done: bool = False
 
 app = FastAPI()
@@ -113,9 +113,12 @@ def get_tasks(done: bool = None, q: str = None, limit: int = 2, offset: int = 2)
 # Stage 3 - C (Create)
 @app.post("/tasks", status_code=201)
 def create_task(task: Task):
-    new_id = max((task["id"] for task in db), default=0) + 1
-    new_task = {"id": new_id, "title": task.title, "done": task.done}
-    db.append(new_task)
+    conn = get_db()
+    cursor = conn.execute("INSERT INTO tasks (title, done) VALUES (?, ?)", (task.title, task.done))
+    conn.commit()
+    new_task_id = cursor.lastrowid
+    conn.close()
+    new_task = {"id": new_task_id, "title": task.title, "done": task.done}
     return {"task": new_task}
 
 # Stage 4 - U/D (Update/Delete)
