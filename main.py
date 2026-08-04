@@ -124,17 +124,24 @@ def create_task(task: Task):
 # Stage 4 - U/D (Update/Delete)
 @app.put("/tasks/{id}")
 def update_task(id: int, task: Task):
-    for existing_task in db:
-        if existing_task["id"] == id:
-            existing_task["title"] = task.title
-            existing_task["done"] = task.done
-            return {"task": existing_task}
-    return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    conn = get_db()
+    cursor = conn.execute("UPDATE tasks SET title = ?, done = ? WHERE id = ?", (task.title, task.done, id))
+    conn.commit()
+
+    if cursor.rowcount == 0:
+        conn.close()
+        return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+
+    row = conn.execute("SELECT * FROM tasks WHERE id = ?", (id,)).fetchone()
+    conn.close()
+    return {"task": dict(row)}
 
 @app.delete("/tasks/{id}", status_code=204)
 def delete_task(id: int):
-    for i, task in enumerate(db):
-        if task["id"] == id:
-            del db[i]
-            return
-    return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    conn = get_db()
+    cursor = conn.execute("DELETE FROM tasks WHERE id = ?", (id,))
+    conn.commit()
+
+    if cursor.rowcount == 0:
+        return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    return
