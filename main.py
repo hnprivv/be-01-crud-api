@@ -141,6 +141,7 @@ def delete_task(id: int):
     conn = get_db()
     cursor = conn.execute("DELETE FROM tasks WHERE id = ?", (id,))
     conn.commit()
+    conn.close()
 
     if cursor.rowcount == 0:
         return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
